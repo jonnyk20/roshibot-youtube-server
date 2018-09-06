@@ -1,15 +1,16 @@
 const express = require('express');
 const path = require('path');
-const app = express();
+const R = require('ramda');
 
 // Utilities
 const util = require('util');
 const fs = require('fs');
 
+const app = express();
 // Google Stuff
 var { google } = require('googleapis');
 
-fs.writeFile('./.env', 'Hey there!', function(err) {
+fs.writeFile('./.env', 'Hey there!', err => {
   if (err) {
     return console.log(err);
   }
@@ -29,10 +30,60 @@ const clientId =
 const clientSecret = '1zMRJ1cgLXJUx4JtT1PCAArZ';
 const redirectUrl = 'http://localhost:3000/callback';
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUrl);
-let code =
-  '4/UQDbyQ-erDwPPmj53lG5haS4T8xWXbdHde0MScSiw_v-Z1WBdv3i8KiYx1bJde5KVR_XRLnsK6StRmtn4TLWaGY';
+oauth2Client.on('tokens', tokens => {
+  if (tokens.refresh_token) {
+    // store the refresh_token in my database!
+    console.log(tokens.refresh_token);
+  }
+  console.log(tokens.access_token);
+});
+
+let chatId;
 
 const port = 3000;
+
+const getChatMessages = liveChatId => {
+  const service = google.youtube('v3');
+  service.liveChatMessages
+    .list({
+      auth: oauth2Client,
+      part: 'snippet',
+      liveChatId
+    })
+    .then(response => {
+      const comments = response.data.items;
+      console.log(comments[0]);
+      console.log('comments ids', R.pluck('id', comments));
+    })
+    .catch(err => {
+      console.log('The API returned an error: ' + err);
+      console.log(util.inspect(err, false, null));
+      return;
+    });
+};
+
+const listLiveBroadCasts = auth => {
+  const service = google.youtube('v3');
+  service.liveBroadcasts
+    .list({
+      auth,
+      part: 'snippet',
+      mine: true
+    })
+    .then(response => {
+      chatId = R.path(['data', 'items', 0, 'snippet', 'liveChatId'], response);
+      console.log('chatId', chatId);
+      getChatMessages(chatId);
+    })
+    .catch(err => console.log('err', err));
+};
+
+const authorize = auth => {
+  oauth2Client.setCredentials(auth.tokens);
+
+  console.log('Successfully authed');
+  listLiveBroadCasts(oauth2Client);
+};
 
 const getNewToken = res => {
   const authUrl = oauth2Client.generateAuthUrl({
@@ -41,36 +92,6 @@ const getNewToken = res => {
   });
   res.redirect(authUrl);
 };
-
-function getChannel(auth) {
-  var service = google.youtube('v3');
-  service.channels.list(
-    {
-      auth: auth,
-      part: 'snippet,contentDetails,statistics',
-      forUsername: 'GoogleDevelopers'
-    },
-    function(err, response) {
-      if (err) {
-        console.log('The API returned an error: ' + err);
-        return;
-      }
-      var channels = response.data.items;
-      if (channels.length == 0) {
-        console.log('No channel found.');
-      } else {
-        console.log(
-          "This channel's ID is %s. Its title is '%s', and " +
-            'it has %s views.',
-          channels[0].id,
-          channels[0].snippet.title,
-          channels[0].statistics.viewCount
-        );
-        commentThreadsListByVideoId(auth);
-      }
-    }
-  );
-}
 
 app.use('/', express.static(path.join(__dirname, 'public')));
 
@@ -82,15 +103,11 @@ app.get('/auth', (req, res) => {
 app.get('/callback', (req, res) => {
   console.log('/callback');
   const code = req.query.code;
-  console.log(util.inspect(req.query, false, null));
-  oauth2Client.getToken(code, function(err, token) {
-    if (err) {
-      console.log('Error while trying to retrieve access token', err);
-      return;
-    }
-    oauth2Client.credentials = token;
-    console.log('Successfully authed');
-  });
+  console.log('code', code);
+  oauth2Client
+    .getToken(code)
+    .then(authorize)
+    .catch(err => console.log('err', err));
   res.sendFile(path.join(__dirname + '/public/callback.html'));
 });
 
