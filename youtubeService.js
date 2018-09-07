@@ -1,5 +1,3 @@
-const express = require('express');
-const path = require('path');
 const R = require('ramda');
 const { google } = require('googleapis');
 
@@ -9,8 +7,6 @@ const fs = require('fs');
 
 const writeFile = util.promisify(fs.writeFile);
 const readFile = util.promisify(fs.readFile);
-
-const app = express();
 
 const save = async (path, str) => {
   try {
@@ -45,6 +41,7 @@ const clientId =
 const clientSecret = '1zMRJ1cgLXJUx4JtT1PCAArZ';
 const redirectUrl = 'http://localhost:3000/callback';
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUrl);
+const auth = oauth2Client;
 const service = google.youtube('v3');
 oauth2Client.on('tokens', tokens => {
   if (tokens.refresh_token) {
@@ -55,8 +52,6 @@ oauth2Client.on('tokens', tokens => {
 });
 
 let chatId;
-
-const port = 3000;
 
 const getChatMessages = async liveChatId => {
   try {
@@ -72,7 +67,7 @@ const getChatMessages = async liveChatId => {
   }
 };
 
-const getLatestChatId = async auth => {
+const getLatestChatId = async () => {
   try {
     const response = await service.liveBroadcasts.list({
       auth,
@@ -81,6 +76,7 @@ const getLatestChatId = async auth => {
     });
     const latestChat = response.data.items[0];
     const chatId = latestChat.snippet.liveChatId;
+    console.log(util.inspect(response.data.items, false, null));
     return chatId;
   } catch (error) {
     console.log('Error ferching broadcasts', error);
@@ -112,31 +108,4 @@ const checkAuth = async () => {
 
 checkAuth();
 
-app.use('/', express.static(path.join(__dirname, 'public')));
-
-app.get('/auth', (req, res) => {
-  console.log('/auth');
-  getNewToken(res);
-});
-
-app.get('/callback', async (req, res) => {
-  console.log('/callback');
-  const code = req.query.code;
-  console.log('code', code);
-  try {
-    const auth = await oauth2Client.getToken(code);
-    authorize(auth);
-  } catch (error) {
-    console.log('Error in Callback', err);
-  }
-  res.sendFile(path.join(__dirname + '/public/callback.html'));
-});
-
-app.get('/test', (req, res) => {
-  getLatestChatId(oauth2Client);
-  res.end('testing');
-});
-
-app.listen(port);
-
-console.log('lisening on', port);
+module.exports = { getChatMessages, getLatestChatId, getNewToken, authorize };
