@@ -37,9 +37,9 @@ app.get('/stop', (req, res) => {
   res.end('stopped');
 });
 
-app.get('/test', (req, res) => {
+app.get('/chat', (req, res) => {
   getLatestChatId();
-  res.end('testing');
+  res.end('chatId');
 });
 
 app.get('/messages', (req, res) => {

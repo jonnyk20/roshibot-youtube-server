@@ -22,12 +22,9 @@ const save = async (path, str) => {
 const read = async path => {
   try {
     const content = await readFile(path);
-    const object = JSON.parse(content);
-    return object;
-    console.log('Object:', object);
+    return JSON.parse(content);
   } catch (error) {
     console.log('Error Reading:', error);
-    return null;
   }
 };
 
@@ -42,10 +39,9 @@ const clientId =
   '304825942443-inmmg9cud04tv1uie1k5avdcqss7h53o.apps.googleusercontent.com';
 const clientSecret = '1zMRJ1cgLXJUx4JtT1PCAArZ';
 const redirectUrl = 'http://localhost:3000/callback';
-const oauth2Client = new OAuth2(clientId, clientSecret, redirectUrl);
-const auth = oauth2Client;
+const auth = new OAuth2(clientId, clientSecret, redirectUrl);
 const service = google.youtube('v3');
-oauth2Client.on('tokens', tokens => {
+auth.on('tokens', tokens => {
   if (tokens.refresh_token) {
     // store the refresh_token in my database!
     console.log('refreshing token');
@@ -54,7 +50,7 @@ oauth2Client.on('tokens', tokens => {
   console.log(tokens.access_token);
 });
 
-let chatId = 'Cg0KC3ZVanc5Y0toQjdV';
+let liveChatId = 'Cg0KC3ZVanc5Y0toQjdV';
 let nextPage;
 const intervalTime = 5000;
 let interval;
@@ -119,9 +115,9 @@ const processNewComments = comments => {
 const getChatMessages = async () => {
   try {
     const response = await service.liveChatMessages.list({
-      auth: oauth2Client,
+      auth,
       part: 'snippet',
-      liveChatId: chatId,
+      liveChatId,
       pageToken: nextPage
     });
     const { data } = response;
@@ -149,17 +145,16 @@ const getLatestChatId = async () => {
       mine: true
     });
     const latestChat = response.data.items[0];
-    chatId = latestChat.snippet.liveChatId;
+    liveChatId = latestChat.snippet.liveChatId;
     console.log('chatId', chatId);
   } catch (error) {
     console.log('Error ferching broadcasts', error);
   }
 };
 
-const authorize = auth => {
-  print('auth in callback', auth.tokens);
-  save('./tokens.json', JSON.stringify(auth.tokens));
-  oauth2Client.setCredentials(auth.tokens);
+const authorize = ({ tokens }) => {
+  save('./tokens.json', JSON.stringify(tokens));
+  oauth2Client.setCredentials(tokens);
   console.log('Successfully authed');
 };
 
@@ -182,8 +177,8 @@ const checkAuth = async () => {
 
 const setAuth = async code => {
   console.log('setting Auth');
-  const auth = await oauth2Client.getToken(code);
-  authorize(auth);
+  const credentials = await oauth2Client.getToken(code);
+  authorize(credentials);
 };
 
 checkAuth();
