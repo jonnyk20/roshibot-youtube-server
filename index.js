@@ -1,6 +1,13 @@
 const express = require('express');
 const path = require('path');
-const { getLatestChatId, getNewToken, authorize } = require('./youtubeService');
+const {
+  getChatMessages,
+  getLatestChatId,
+  getNewToken,
+  setAuth,
+  startMessageInterval,
+  stopMessageInterval
+} = require('./youtubeService');
 
 const app = express();
 
@@ -13,22 +20,31 @@ app.get('/auth', (req, res) => {
   getNewToken(res);
 });
 
-app.get('/callback', async (req, res) => {
+app.get('/callback', (req, res) => {
   console.log('/callback');
   const code = req.query.code;
-  console.log('code', code);
-  try {
-    const auth = await oauth2Client.getToken(code);
-    authorize(auth);
-  } catch (error) {
-    console.log('Error in Callback', err);
-  }
+  setAuth(code);
   res.sendFile(path.join(__dirname + '/public/callback.html'));
+});
+
+app.get('/start', (req, res) => {
+  startMessageInterval();
+  res.end('starting');
+});
+
+app.get('/stop', (req, res) => {
+  stopMessageInterval();
+  res.end('stopped');
 });
 
 app.get('/test', (req, res) => {
   getLatestChatId();
   res.end('testing');
+});
+
+app.get('/messages', (req, res) => {
+  getChatMessages();
+  res.end('messages');
 });
 
 app.listen(port);

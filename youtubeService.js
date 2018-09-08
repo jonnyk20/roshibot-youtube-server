@@ -7,6 +7,8 @@ const fs = require('fs');
 
 const writeFile = util.promisify(fs.writeFile);
 const readFile = util.promisify(fs.readFile);
+const print = (label, data) =>
+  console.log(label, util.inspect(data, false, null));
 
 const save = async (path, str) => {
   try {
@@ -46,25 +48,97 @@ const service = google.youtube('v3');
 oauth2Client.on('tokens', tokens => {
   if (tokens.refresh_token) {
     // store the refresh_token in my database!
+    console.log('refreshing token');
     console.log(tokens.refresh_token);
   }
   console.log(tokens.access_token);
 });
 
-let chatId;
+let chatId = 'Cg0KC3ZVanc5Y0toQjdV';
+let nextPage;
+const intervalTime = 5000;
+let interval;
 
-const getChatMessages = async liveChatId => {
+const processNewComments = comments => {
+  const commentTexts = R.map(
+    R.pipe(
+      R.path(['snippet', 'displayMessage']),
+      R.toLower
+    ),
+    comments
+  );
+  // Todo: account for aliases and typos
+  const directionsCount = {
+    up: 0,
+    down: 0,
+    left: 0,
+    right: 0,
+    forward: 0,
+    back: 0
+  };
+  let commandOrder = [];
+  commentTexts.forEach(comment => {
+    if (directionsCount[comment] >= 0) {
+      directionsCount[comment] = directionsCount[comment] + 1;
+      commandOrder = commandOrder.filter(command => command !== comment);
+      commandOrder.push(comment);
+    }
+  });
+
+  const rankedDirections = Object.keys(directionsCount)
+    .sort((a, b) => {
+      return directionsCount[b] - directionsCount[a];
+    })
+    .map(direction => {
+      return {
+        direction,
+        count: directionsCount[direction],
+        order: commandOrder.indexOf(direction)
+      };
+    });
+  if (R.isEmpty(commandOrder)) {
+    console.log('no commands given');
+    return;
+  }
+  const outputCommand = rankedDirections.reduce(
+    (acc, commandObj) => {
+      if (commandObj.count > acc.count) {
+        return commandObj;
+      }
+      if (commandObj.count < acc.count) {
+        return acc;
+      }
+      return commandObj.order > acc.order ? commandObj : acc;
+    },
+    { count: 0, order: -1, direction: null }
+  ).direction;
+
+  print('outputCommand', outputCommand);
+};
+
+const getChatMessages = async () => {
   try {
     const response = await service.liveChatMessages.list({
       auth: oauth2Client,
       part: 'snippet',
-      liveChatId
+      liveChatId: chatId,
+      pageToken: nextPage
     });
-    const comments = response.data.items;
-    console.log('first comment', comments[0]);
+    const { data } = response;
+    const comments = data.items;
+    processNewComments(comments);
+    nextPage = data.nextPageToken;
   } catch (error) {
     console.log('The API returned an error: ' + error);
   }
+};
+
+const startMessageInterval = () => {
+  interval = setInterval(getChatMessages, intervalTime);
+};
+
+const stopMessageInterval = () => {
+  clearInterval(interval);
 };
 
 const getLatestChatId = async () => {
@@ -75,17 +149,17 @@ const getLatestChatId = async () => {
       mine: true
     });
     const latestChat = response.data.items[0];
-    const chatId = latestChat.snippet.liveChatId;
-    console.log(util.inspect(response.data.items, false, null));
-    return chatId;
+    chatId = latestChat.snippet.liveChatId;
+    console.log('chatId', chatId);
   } catch (error) {
     console.log('Error ferching broadcasts', error);
   }
 };
 
-const authorize = ({ tokens }) => {
-  save('./tokens.json', JSON.stringify(tokens));
-  oauth2Client.setCredentials(tokens);
+const authorize = auth => {
+  print('auth in callback', auth.tokens);
+  save('./tokens.json', JSON.stringify(auth.tokens));
+  oauth2Client.setCredentials(auth.tokens);
   console.log('Successfully authed');
 };
 
@@ -106,6 +180,19 @@ const checkAuth = async () => {
   }
 };
 
+const setAuth = async code => {
+  console.log('setting Auth');
+  const auth = await oauth2Client.getToken(code);
+  authorize(auth);
+};
+
 checkAuth();
 
-module.exports = { getChatMessages, getLatestChatId, getNewToken, authorize };
+module.exports = {
+  getChatMessages,
+  getLatestChatId,
+  getNewToken,
+  setAuth,
+  startMessageInterval,
+  stopMessageInterval
+};
