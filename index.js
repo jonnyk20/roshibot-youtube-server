@@ -23,7 +23,7 @@ app.get('/auth', (req, res) => {
 app.get('/callback', (req, res) => {
   console.log('/callback');
   const code = req.query.code;
-  setAuth(code);
+  setAuth(code).catch(console.error);
   res.sendFile(path.join(__dirname + '/public/callback.html'));
 });
 
@@ -38,7 +38,7 @@ app.get('/stop', (req, res) => {
 });
 
 app.get('/chat', (req, res) => {
-  getLatestChatId();
+  getLatestChatId().catch(console.error);
   res.end('chatId');
 });
 

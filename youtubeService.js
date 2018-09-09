@@ -125,7 +125,7 @@ const getChatMessages = async () => {
     processNewComments(comments);
     nextPage = data.nextPageToken;
   } catch (error) {
-    console.log('The API returned an error: ' + error);
+    console.log('Error getting chat messages: ' + error);
   }
 };
 
@@ -138,28 +138,26 @@ const stopMessageInterval = () => {
 };
 
 const getLatestChatId = async () => {
-  try {
-    const response = await service.liveBroadcasts.list({
-      auth,
-      part: 'snippet',
-      mine: true
-    });
-    const latestChat = response.data.items[0];
-    liveChatId = latestChat.snippet.liveChatId;
-    console.log('chatId', chatId);
-  } catch (error) {
-    console.log('Error ferching broadcasts', error);
-  }
+  const response = await service.liveBroadcasts.list({
+    auth,
+    part: 'snippet',
+    mine: true
+  });
+  const latestChat = response.data.items[0];
+  liveChatId = latestChat.snippet.liveChatId;
+  console.log('snippet', latestChat.snippet);
+  console.log('liveChatId', liveChatId);
+  console.log('Error fetching broadcasts', error);
 };
 
 const authorize = ({ tokens }) => {
   save('./tokens.json', JSON.stringify(tokens));
-  oauth2Client.setCredentials(tokens);
+  auth.setCredentials(tokens);
   console.log('Successfully authed');
 };
 
 const getNewToken = res => {
-  const authUrl = oauth2Client.generateAuthUrl({
+  const authUrl = auth.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES
   });
@@ -169,7 +167,7 @@ const getNewToken = res => {
 const checkAuth = async () => {
   const tokens = await read('./tokens.json');
   if (tokens) {
-    oauth2Client.setCredentials(tokens);
+    auth.setCredentials(tokens);
   } else {
     console.log('no tokens set');
   }
@@ -177,7 +175,7 @@ const checkAuth = async () => {
 
 const setAuth = async code => {
   console.log('setting Auth');
-  const credentials = await oauth2Client.getToken(code);
+  const credentials = await auth.getToken(code);
   authorize(credentials);
 };
 
