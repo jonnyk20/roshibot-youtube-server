@@ -1,5 +1,6 @@
 const R = require('ramda');
 const { google } = require('googleapis');
+var request = require('request-promise');
 
 // Utilities
 const util = require('util');
@@ -41,6 +42,24 @@ const clientSecret = '1zMRJ1cgLXJUx4JtT1PCAArZ';
 const redirectUrl = 'http://localhost:3000/callback';
 const auth = new OAuth2(clientId, clientSecret, redirectUrl);
 const service = google.youtube('v3');
+const remoteUrl = 'http://192.168.0.17:3000';
+
+const sendCommand = command => {
+  const options = {
+    method: 'POST',
+    uri: 'http://192.168.0.17:3000/command',
+    body: { color: command },
+    json: true
+  };
+  request(options)
+    .then(function(res) {
+      console.log('command res', res);
+    })
+    .catch(function(err) {
+      console.log('cp,,amd err', err);
+    });
+};
+
 auth.on('tokens', tokens => {
   if (tokens.refresh_token) {
     // store the refresh_token in my database!
@@ -50,9 +69,9 @@ auth.on('tokens', tokens => {
   console.log(tokens.access_token);
 });
 
-let liveChatId = 'Cg0KC3ZVanc5Y0toQjdV';
+let liveChatId;
 let nextPage;
-const intervalTime = 5000;
+const intervalTime = 3000;
 let interval;
 
 const processNewComments = comments => {
@@ -65,12 +84,11 @@ const processNewComments = comments => {
   );
   // Todo: account for aliases and typos
   const directionsCount = {
-    up: 0,
-    down: 0,
-    left: 0,
-    right: 0,
-    forward: 0,
-    back: 0
+    red: 0,
+    green: 0,
+    yellow: 0,
+    blue: 0,
+    off: 0
   };
   let commandOrder = [];
   commentTexts.forEach(comment => {
@@ -110,6 +128,7 @@ const processNewComments = comments => {
   ).direction;
 
   print('outputCommand', outputCommand);
+  sendCommand(outputCommand);
 };
 
 const getChatMessages = async () => {
@@ -129,7 +148,13 @@ const getChatMessages = async () => {
   }
 };
 
-const startMessageInterval = () => {
+const startMessageInterval = async () => {
+  await getLatestChatId();
+  console.log('liveChatId', liveChatId);
+  if (!liveChatId) {
+    console.log('No liveChatId available');
+    return;
+  }
   interval = setInterval(getChatMessages, intervalTime);
 };
 
@@ -143,11 +168,14 @@ const getLatestChatId = async () => {
     part: 'snippet',
     mine: true
   });
+  const chats = response.data.items;
+  console.log('chats', chats);
   const latestChat = response.data.items[0];
   liveChatId = latestChat.snippet.liveChatId;
   console.log('snippet', latestChat.snippet);
-  console.log('liveChatId', liveChatId);
-  console.log('Error fetching broadcasts', error);
+  if (!liveChatId) {
+    console.log('no live chatID');
+  }
 };
 
 const authorize = ({ tokens }) => {

@@ -1,5 +1,11 @@
-const button = document.getElementById('test');
+const buttons = document.querySelectorAll('.request');
+console.log('button', buttons);
+const request = async ({ target }) => {
+  console.log('request made');
+  const response = await fetch(`/${target.id}`);
+  console.log('response', response);
+};
 
-const getComments = () => fetch('/chat-messages');
-
-button.addEventListener('click', getComments);
+buttons.forEach(button => {
+  button.addEventListener('click', request);
+});
