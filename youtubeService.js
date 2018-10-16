@@ -36,13 +36,11 @@ const SCOPES = [
   'https://www.googleapis.com/auth/youtube',
   'https://www.googleapis.com/auth/youtube.force-ssl'
 ];
-const clientId =
-  '304825942443-inmmg9cud04tv1uie1k5avdcqss7h53o.apps.googleusercontent.com';
-const clientSecret = '1zMRJ1cgLXJUx4JtT1PCAArZ';
-const redirectUrl = 'http://localhost:3000/callback';
+const clientId = process.env.CLIENT_ID;
+const clientSecret = process.env.CLIENT_SECRET;
+const redirectUrl = process.env.REDIURECT_URL;
 const auth = new OAuth2(clientId, clientSecret, redirectUrl);
 const service = google.youtube('v3');
-const remoteUrl = 'http://192.168.0.17:3000';
 
 const sendCommand = command => {
   const options = {
@@ -191,9 +189,11 @@ const getNewToken = res => {
   res.redirect(authUrl);
 };
 
-const checkAuth = async () => {
-  const tokens = await read('./tokens.json');
+const checkAuth = async tokens => {
+  console.log('checking auth');
+  // const tokens = await read('./tokens.json');
   if (tokens) {
+    console.log('token set');
     auth.setCredentials(tokens);
   } else {
     console.log('no tokens set');
@@ -206,7 +206,7 @@ const setAuth = async code => {
   authorize(credentials);
 };
 
-checkAuth();
+// checkAuth();
 
 module.exports = {
   getChatMessages,
@@ -214,5 +214,6 @@ module.exports = {
   getNewToken,
   setAuth,
   startMessageInterval,
-  stopMessageInterval
+  stopMessageInterval,
+  checkAuth
 };

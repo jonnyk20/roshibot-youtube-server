@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const {
@@ -10,7 +11,6 @@ const {
 } = require('./youtubeService');
 
 const app = express();
-
 const port = 3000;
 
 app.use('/', express.static(path.join(__dirname, 'public')));
@@ -47,6 +47,10 @@ app.get('/messages', (req, res) => {
   res.end('messages');
 });
 
-app.listen(port);
+app.on('ready', function() {
+  app.listen(port, function() {
+    console.log('app is ready and listening on', port);
+  });
+});
 
-console.log('lisening on', port);
+require('./db')(app);
