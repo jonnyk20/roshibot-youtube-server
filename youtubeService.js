@@ -160,7 +160,7 @@ const stopMessageInterval = () => {
   clearInterval(interval);
 };
 
-const getLatestChatId = async () => {
+const getLatestChatId = async res => {
   const response = await service.liveBroadcasts.list({
     auth,
     part: 'snippet',
@@ -172,7 +172,9 @@ const getLatestChatId = async () => {
   console.log('snippet', latestChat.snippet);
   if (!liveChatId) {
     console.log('no live chatID');
+    return res.end('no live chatID');
   }
+  return res.end('Latest live Chat Id' + liveChatId);
 };
 
 const authorize = ({ tokens }) => {

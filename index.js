@@ -38,8 +38,7 @@ app.get('/stop', (req, res) => {
 });
 
 app.get('/chat', (req, res) => {
-  getLatestChatId().catch(console.error);
-  res.end('chatId');
+  getLatestChatId(res).catch(console.error);
 });
 
 app.get('/messages', (req, res) => {
