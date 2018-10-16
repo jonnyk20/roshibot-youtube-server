@@ -47,7 +47,7 @@ app.get('/messages', (req, res) => {
 
 app.on('ready', function() {
   app.listen(process.env.PORT, function() {
-    console.log('app is ready and listening on', port);
+    console.log('app is ready and listening on', process.env.PORT);
   });
 });
 
