@@ -11,7 +11,6 @@ const {
 } = require('./youtubeService');
 
 const app = express();
-const port = 3000;
 
 app.use('/', express.static(path.join(__dirname, 'public')));
 
@@ -47,7 +46,7 @@ app.get('/messages', (req, res) => {
 });
 
 app.on('ready', function() {
-  app.listen(port, function() {
+  app.listen(PROCESS.env.PORT, function() {
     console.log('app is ready and listening on', port);
   });
 });

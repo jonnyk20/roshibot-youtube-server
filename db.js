@@ -9,7 +9,7 @@ const connect = app => {
       if (err) throw err;
       console.log('Database connected!');
       app.emit('ready');
-      var dbo = db.db('heroku_t226sql1');
+      var dbo = db.db(process.env.database);
       dbo.collection('tokens').findOne({}, function(err, result) {
         if (err) throw err;
         console.log('token found', result);
