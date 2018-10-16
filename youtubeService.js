@@ -45,7 +45,7 @@ const service = google.youtube('v3');
 const sendCommand = command => {
   const options = {
     method: 'POST',
-    uri: `${process.env.REMOTE_URL}:5000/move`,
+    uri: `${process.env.REMOTE_URL}/move`,
     body: { direction: command },
     json: true
   };
