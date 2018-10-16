@@ -168,8 +168,7 @@ const getLatestChatId = async () => {
     part: 'snippet',
     mine: true
   });
-  const chats = response.data.items;
-  console.log('chats', chats);
+  const liveBroadcasts = response.data.items;
   const latestChat = response.data.items[0];
   liveChatId = latestChat.snippet.liveChatId;
   console.log('snippet', latestChat.snippet);
