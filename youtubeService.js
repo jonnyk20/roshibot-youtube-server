@@ -45,8 +45,8 @@ const service = google.youtube('v3');
 const sendCommand = command => {
   const options = {
     method: 'POST',
-    uri: 'http://192.168.0.17:3000/command',
-    body: { color: command },
+    uri: `${process.env.REMOTE_URL}:5000/move`,
+    body: { direction: command },
     json: true
   };
   request(options)
@@ -69,7 +69,7 @@ auth.on('tokens', tokens => {
 
 let liveChatId;
 let nextPage;
-const intervalTime = 3000;
+const intervalTime = 3500;
 let interval;
 
 const processNewComments = comments => {
@@ -82,11 +82,12 @@ const processNewComments = comments => {
   );
   // Todo: account for aliases and typos
   const directionsCount = {
-    red: 0,
-    green: 0,
-    yellow: 0,
-    blue: 0,
-    off: 0
+    left: 0,
+    right: 0,
+    up: 0,
+    down: 0,
+    forward: 0,
+    backward: 0
   };
   let commandOrder = [];
   commentTexts.forEach(comment => {
@@ -147,11 +148,11 @@ const getChatMessages = async () => {
 };
 
 const startMessageInterval = async () => {
-  await getLatestChatId();
-  console.log('liveChatId', liveChatId);
   if (!liveChatId) {
-    console.log('No liveChatId available');
-    return;
+    await getLatestChatId();
+  }
+  if (!liveChatId) {
+    return console.log('No liveChatId available');
   }
   interval = setInterval(getChatMessages, intervalTime);
 };
@@ -169,12 +170,11 @@ const getLatestChatId = async res => {
   const liveBroadcasts = response.data.items;
   const latestChat = response.data.items[0];
   liveChatId = latestChat.snippet.liveChatId;
-  console.log('snippet', latestChat.snippet);
-  if (!liveChatId) {
-    console.log('no live chatID');
-    return res.end('no live chatID');
+  const msg = `Latest chat ID: ${liveChatId}`;
+  if (res) {
+    res.end(msg);
   }
-  return res.end('Latest live Chat Id' + liveChatId);
+  console.log(msg);
 };
 
 const authorize = ({ tokens }) => {
@@ -207,8 +207,6 @@ const setAuth = async code => {
   const credentials = await auth.getToken(code);
   authorize(credentials);
 };
-
-// checkAuth();
 
 module.exports = {
   getChatMessages,
