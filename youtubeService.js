@@ -4,28 +4,16 @@ var request = require('request-promise');
 
 // Utilities
 const util = require('util');
-const fs = require('fs');
 
-const writeFile = util.promisify(fs.writeFile);
-const readFile = util.promisify(fs.readFile);
 const print = (label, data) =>
   console.log(label, util.inspect(data, false, null));
 
-const save = async (path, str) => {
+const saveTokens = async tokens => {
   try {
-    await writeFile(path, str);
+    // await save tokens to DB
     console.log('Saved!');
   } catch (error) {
     console.log('Error Saving:', error);
-  }
-};
-
-const read = async path => {
-  try {
-    const content = await readFile(path);
-    return JSON.parse(content);
-  } catch (error) {
-    console.log('Error Reading:', error);
   }
 };
 
@@ -167,7 +155,6 @@ const getLatestChatId = async res => {
     part: 'snippet',
     mine: true
   });
-  const liveBroadcasts = response.data.items;
   const latestChat = response.data.items[0];
   liveChatId = latestChat.snippet.liveChatId;
   const msg = `Latest chat ID: ${liveChatId}`;
@@ -178,7 +165,7 @@ const getLatestChatId = async res => {
 };
 
 const authorize = ({ tokens }) => {
-  save('./tokens.json', JSON.stringify(tokens));
+  saveTokens(tokens);
   auth.setCredentials(tokens);
   console.log('Successfully authed');
 };
