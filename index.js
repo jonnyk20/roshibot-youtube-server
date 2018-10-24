@@ -7,16 +7,42 @@ const {
   getNewToken,
   setAuth,
   startMessageInterval,
-  stopMessageInterval
+  stopMessageInterval,
+  updateTokens,
 } = require('./youtubeService');
 
+var MongoClient = require('mongodb').MongoClient;
+MongoClient.connect(
+  process.env.MONGODB_URI,
+  { useNewUrlParser: true }
+).then(db => {
+  console.log('Database connected!');
+  var dbo = db.db(process.env.database);
+  dataHelpers = dataHelpers(dbo);
+  dataHelpers.checkTokens().then(tokens => {
+    updateTokens(tokens);
+  });
+  process.on('SIGINT', function () {
+    db.close(function () {
+      console.log('Closing DB Connection');
+      process.exit(0)
+    });
+  });
+})
+  .catch(err => {
+    console.log('error connecting to database:', err);
+  });
+
+let dataHelpers = require('./dataHelpers');
 const app = express();
 
 app.use('/', express.static(path.join(__dirname, 'public')));
 
-app.get('/auth', (req, res) => {
+app.get('/auth', async (req, res) => {
   console.log('/auth');
-  getNewToken(res);
+  const tokens = await getNewToken(res);
+  await dataHelpers.saveTokens(tokens);
+  res.send("successfully saved tokens")
 });
 
 app.get('/callback', (req, res) => {
@@ -45,10 +71,6 @@ app.get('/messages', (req, res) => {
   res.end('messages');
 });
 
-app.on('ready', function() {
-  app.listen(process.env.PORT, function() {
-    console.log('app is ready and listening on', process.env.PORT);
-  });
+app.listen(process.env.PORT, function () {
+  console.log('app is ready and listening on', process.env.PORT);
 });
-
-require('./db')(app);

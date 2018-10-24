@@ -38,10 +38,10 @@ const sendCommand = command => {
     json: true
   };
   request(options)
-    .then(function(res) {
+    .then(function (res) {
       console.log('command res', res);
     })
-    .catch(function(err) {
+    .catch(function (err) {
       console.log('cp,,amd err', err);
     });
 };
@@ -165,9 +165,9 @@ const getLatestChatId = async res => {
 };
 
 const authorize = ({ tokens }) => {
-  saveTokens(tokens);
   auth.setCredentials(tokens);
   console.log('Successfully authed');
+  return tokens;
 };
 
 const getNewToken = res => {
@@ -178,7 +178,7 @@ const getNewToken = res => {
   res.redirect(authUrl);
 };
 
-const checkAuth = async tokens => {
+const updateTokens = async tokens => {
   console.log('checking auth');
   // const tokens = await read('./tokens.json');
   if (tokens) {
@@ -202,5 +202,5 @@ module.exports = {
   setAuth,
   startMessageInterval,
   stopMessageInterval,
-  checkAuth
+  updateTokens
 };
