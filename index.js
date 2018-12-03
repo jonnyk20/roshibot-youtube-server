@@ -9,6 +9,7 @@ const {
   startMessageInterval,
   stopMessageInterval,
   updateTokens,
+  insertMessage
 } = require('./youtubeService');
 
 var MongoClient = require('mongodb').MongoClient;
@@ -69,6 +70,11 @@ app.get('/chat', (req, res) => {
 app.get('/messages', (req, res) => {
   getChatMessages();
   res.end('messages');
+});
+
+app.get('/insert', (req, res) => {
+  insertMessage();
+  res.end('inserting');
 });
 
 app.listen(process.env.PORT, function () {

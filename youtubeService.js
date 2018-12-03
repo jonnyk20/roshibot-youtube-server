@@ -115,6 +115,7 @@ const processNewComments = comments => {
   ).direction;
 
   print('outputCommand', outputCommand);
+  insertMessage(`Command received: ${outputCommand}`)
   sendCommand(outputCommand);
 };
 
@@ -135,19 +136,7 @@ const getChatMessages = async () => {
   }
 };
 
-const startMessageInterval = async () => {
-  if (!liveChatId) {
-    await getLatestChatId();
-  }
-  if (!liveChatId) {
-    return console.log('No liveChatId available');
-  }
-  interval = setInterval(getChatMessages, intervalTime);
-};
 
-const stopMessageInterval = () => {
-  clearInterval(interval);
-};
 
 const getLatestChatId = async res => {
   const response = await service.liveBroadcasts.list({
@@ -162,6 +151,20 @@ const getLatestChatId = async res => {
     res.end(msg);
   }
   console.log(msg);
+};
+
+const startMessageInterval = async () => {
+  if (!liveChatId) {
+    await getLatestChatId();
+  }
+  if (!liveChatId) {
+    return console.log('No liveChatId available');
+  }
+  interval = setInterval(getChatMessages, intervalTime);
+};
+
+const stopMessageInterval = () => {
+  clearInterval(interval);
 };
 
 const authorize = ({ tokens }) => {
@@ -195,6 +198,30 @@ const setAuth = async code => {
   authorize(credentials);
 };
 
+const insertMessage = messageText => {
+  var youtube = google.youtube('v3');
+  youtube.liveChatMessages.insert({
+    auth,
+    part: 'snippet',
+    resource: {
+      snippet: {
+        type: "textMessageEvent",
+        liveChatId,
+        textMessageDetails: {
+          messageText,
+        }
+      }
+    }
+  }, function (err, response) {
+    if (err) {
+      print('The API returned an error: ' + err);
+      return;
+    } else {
+      console.log(response);
+    }
+  });
+}
+
 module.exports = {
   getChatMessages,
   getLatestChatId,
@@ -202,5 +229,6 @@ module.exports = {
   setAuth,
   startMessageInterval,
   stopMessageInterval,
-  updateTokens
+  updateTokens,
+  insertMessage
 };
