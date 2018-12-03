@@ -142,8 +142,10 @@ const getLatestChatId = async res => {
   const response = await service.liveBroadcasts.list({
     auth,
     part: 'snippet',
+    broadcastType: 'all',
     mine: true
   });
+  print('response:', response.data);
   const latestChat = response.data.items[0];
   liveChatId = latestChat.snippet.liveChatId;
   const msg = `Latest chat ID: ${liveChatId}`;
